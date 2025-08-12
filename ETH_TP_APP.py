@@ -1,13 +1,30 @@
 import streamlit as st
 import requests
 
+st.title("ETH TP APP")
+
 def get_eth_price():
+    url_coingecko = "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd"
+    url_coincap = "https://api.coincap.io/v2/assets/ethereum"
+
     try:
-        response = requests.get("https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd")
+        # Essai CoinGecko
+        response = requests.get(url_coingecko, timeout=5)
+        response.raise_for_status()
         data = response.json()
-        return data['ethereum']['usd']
+        price = data['ethereum']['usd']
+        return price
     except Exception:
-        return None
+        try:
+            # Fallback CoinCap
+            response = requests.get(url_coincap, timeout=5)
+            response.raise_for_status()
+            data = response.json()
+            price = float(data['data']['priceUsd'])
+            return price
+        except Exception as e:
+            st.error(f"Erreur récupération prix ETH : {e}")
+            return None
 
 def calculate_take_profits(pru, tp_settings):
     tp_levels = {}
@@ -20,10 +37,18 @@ def calculate_take_profits(pru, tp_settings):
         }
     return tp_levels
 
-st.title("ETH TP APP")
+def display_status(current_price, pru, tp_levels):
+    st.write("="*40)
+    st.write("📊 Paliers de Take Profit :")
+    for tp_name, data in tp_levels.items():
+        status = "✅ Atteint" if current_price >= data['price_level'] else "🔜 En attente"
+        st.write(f" - {tp_name}: +{data['gain_pct']}% → {data['price_level']} USD | Vendre {data['sell_pct']}% ({status})")
+    st.write(f"\n💰 Prix actuel de l'ETH : {current_price} USD")
+    st.write(f"🎯 PRU : {pru} USD")
+    st.write("="*40)
 
-pru = st.number_input("PRU ($) :", value=1500.0, step=1.0)
-
+# Inputs
+pru = st.number_input("PRU ($) :", min_value=0.0, value=1500.0, step=1.0, format="%.2f")
 tp_input = st.text_input("TP (paliers) :", value="100:25,150:50,200:25")
 
 if st.button("Rafraîchir le prix d'ETH"):
@@ -33,19 +58,11 @@ if st.button("Rafraîchir le prix d'ETH"):
             gain, sell = map(float, item.strip().split(':'))
             tp_settings.append((gain, sell))
         
-        tp_levels = calculate_take_profits(pru, tp_settings)
         current_price = get_eth_price()
-        
         if current_price is None:
-            st.error("Erreur récupération prix ETH.")
+            st.error("Impossible de récupérer le prix de l'ETH.")
         else:
-            st.markdown("---")
-            st.write(f"💰 **Prix actuel de l'ETH** : {current_price} USD")
-            st.write(f"🎯 **PRU** : {pru} USD")
-            st.write("📊 **Paliers de Take Profit :**")
-            for tp_name, data in tp_levels.items():
-                status = "✅ Atteint" if current_price >= data['price_level'] else "🔜 En attente"
-                st.write(f"- {tp_name}: +{data['gain_pct']}% → {data['price_level']} USD | Vendre {data['sell_pct']}% ({status})")
-            st.markdown("---")
+            tp_levels = calculate_take_profits(pru, tp_settings)
+            display_status(current_price, pru, tp_levels)
     except Exception as e:
         st.error(f"Erreur dans les entrées : {e}")
