@@ -1,107 +1,130 @@
 import streamlit as st
 import requests
-import plotly.express as px
-import pandas as pd
-from datetime import datetime
 
-st.set_page_config(page_title="ETH TP APP", layout="centered")
-
-# Cache la récupération du prix ETH 5 minutes (300 secondes)
-@st.cache_data(ttl=300)
-def get_eth_price():
-    url = "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd"
-    response = requests.get(url)
-    response.raise_for_status()
-    return response.json()["ethereum"]["usd"]
-
-# Cache récupération graphique ETH (1h intervalle sur 24h)
-@st.cache_data(ttl=300)
-def get_eth_chart():
-    url = "https://api.coingecko.com/api/v3/coins/ethereum/market_chart?vs_currency=usd&days=1&interval=hourly"
-    response = requests.get(url)
-    response.raise_for_status()
-    data = response.json()
-    df = pd.DataFrame(data["prices"], columns=["timestamp", "price"])
-    df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms")
-    return df
-
-# Style CSS pour les TP
+# --- Style CSS personnalisé ---
 st.markdown("""
-<style>
-.tp-container {
-    background-color: #121212;
-    color: white;
-    padding: 10px;
-    margin: 10px 0;
-    border-radius: 8px;
-}
-.tp-title {
-    font-weight: bold;
-    color: orange;
-}
-.tp-attente {
-    color: orange;
-    font-weight: bold;
-}
-.tp-atteint {
-    color: #7AC74F;
-    font-weight: bold;
-}
-.footer {
-    font-size: 12px;
-    color: #555;
-    text-align: center;
-    margin-top: 50px;
-}
-</style>
+    <style>
+    .main {
+        background-color: #0e1117;
+        color: white;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    .title {
+        font-weight: bold;
+        color: #8a2be2;
+        font-size: 3rem;
+        margin-bottom: 0;
+    }
+    .subtitle {
+        color: #bbb;
+        margin-top: 0;
+        margin-bottom: 1rem;
+    }
+    .tp-box {
+        background: #1a1e24;
+        border-radius: 12px;
+        padding: 15px;
+        margin-bottom: 10px;
+        color: white !important;
+    }
+    .tp-level {
+        color: #f0a500;
+        font-weight: 600;
+        font-size: 1.1rem;
+    }
+    .status-reached {
+        color: #32cd32;  /* vert */
+        font-weight: bold;
+    }
+    .status-pending {
+        color: #ffa500;  /* orange */
+        font-weight: bold;
+    }
+    .price-current {
+        color: #4dd0e1;
+        font-weight: bold;
+        font-size: 1.3rem;
+    }
+    .button-primary {
+        background-color: #8a2be2;
+        color: white;
+        border-radius: 8px;
+        padding: 0.5rem 1.2rem;
+        font-weight: bold;
+        font-size: 1.1rem;
+    }
+    </style>
 """, unsafe_allow_html=True)
 
-st.title("ETH TP APP")
+# --- Affichage du titre avec logo ETH via st.image() ---
+col1, col2 = st.columns([1, 6])
+with col1:
+    st.image("https://cryptologos.cc/logos/ethereum-eth-logo.png?v=023", width=60, caption="ETH Logo")
+with col2:
+    st.markdown('<h1 class="title">ETH TP APP</h1>', unsafe_allow_html=True)
 
-pru = st.number_input("PRU ($) :", value=1500.0, step=1.0, format="%.2f")
-tp_input = st.text_input("TP (paliers) :", value="100:25,150:50,200:25")
 
-# Bouton pour récupérer le prix ETH (pas à chaque modif)
-if st.button("Rafraîchir le prix d'ETH"):
+def get_eth_price():
+    url_coingecko = "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd"
     try:
-        eth_price = get_eth_price()
-        st.success(f"💰 Prix actuel de l'ETH : ${eth_price:.2f}")
-    except Exception as e:
+        response = requests.get(url_coingecko, timeout=5)
+        response.raise_for_status()
+        data = response.json()
+        price = data['ethereum']['usd']
+        return price
+    except requests.RequestException as e:
         st.error(f"Erreur récupération prix ETH : {e}")
-else:
-    eth_price = None
-    st.info("Cliquez sur 'Rafraîchir le prix d'ETH' pour récupérer le prix actuel.")
+        return None
 
-# Affichage graphique ETH si on a le prix (et donc les données)
-if eth_price is not None:
-    try:
-        df = get_eth_chart()
-        fig = px.line(df, x="timestamp", y="price", title="Cours ETH dernières 24h", labels={"timestamp": "Date", "price": "Prix (USD)"})
-        fig.update_layout(plot_bgcolor="#121212", paper_bgcolor="#121212", font_color="white")
-        st.plotly_chart(fig, use_container_width=True)
-    except Exception as e:
-        st.error(f"Erreur récupération graphique ETH : {e}")
+def calculate_take_profits(pru, tp_settings):
+    tp_levels = {}
+    for i, (percent_gain, percent_sell) in enumerate(tp_settings, start=1):
+        level_price = pru * (1 + percent_gain / 100)
+        tp_levels[f"TP{i}"] = {
+            "gain_pct": percent_gain,
+            "sell_pct": percent_sell,
+            "price_level": round(level_price, 2)
+        }
+    return tp_levels
 
-# Affichage des TP (simple)
-if tp_input:
-    try:
-        tp_list = tp_input.split(",")
-        st.write(f"🎯 PRU : ${pru}")
-        for i, tp in enumerate(tp_list, start=1):
-            pct, sell = map(float, tp.split(":"))
-            target_price = pru * (1 + pct/100)
-            # Simplifions en supposant que si eth_price >= target_price alors "Atteint"
-            status = "Atteint" if eth_price and eth_price >= target_price else "En attente"
-            status_color = "tp-atteint" if status == "Atteint" else "tp-attente"
+def display_status(current_price, pru, tp_levels):
+    st.markdown(f"<p class='price-current'>💰 Prix actuel de l'ETH : ${current_price}</p>", unsafe_allow_html=True)
+    st.markdown(f"<p>🎯 PRU : ${pru}</p>", unsafe_allow_html=True)
 
-            st.markdown(f"""
-            <div class="tp-container">
-                <span class="tp-title">TP{i}</span> +{pct:.1f}% → ${target_price:.2f} | Vendre {sell:.1f}% 
-                <span class="{status_color}"> {status}</span>
+    for tp_name, data in tp_levels.items():
+        status = "✅ Atteint" if current_price >= data['price_level'] else "🔜 En attente"
+        status_class = "status-reached" if current_price >= data['price_level'] else "status-pending"
+        
+        st.markdown(
+            f"""
+            <div class="tp-box">
+                <span class="tp-level">{tp_name}</span>: +{data['gain_pct']}% → <strong>${data['price_level']}</strong> | Vendre {data['sell_pct']}%
+                <span class="{status_class}">{status}</span>
             </div>
-            """, unsafe_allow_html=True)
-    except Exception as e:
-        st.error(f"Erreur format TP : {e}")
+            """,
+            unsafe_allow_html=True
+        )
 
-# Footer discret
-st.markdown('<div class="footer">1way</div>', unsafe_allow_html=True)
+# --- Inputs dans une colonne pour avoir un look plus compact ---
+col1, col2 = st.columns([1,3])
+with col1:
+    pru = st.number_input("PRU ($) :", min_value=0.0, value=1500.0, step=1.0, format="%.2f")
+with col2:
+    tp_input = st.text_input("TP (paliers) :", value="100:25,150:50,200:25")
+
+# Bouton stylé
+if st.button("Rafraîchir le prix d'ETH", key="refresh"):
+    try:
+        tp_settings = []
+        for item in tp_input.split(','):
+            gain, sell = map(float, item.strip().split(':'))
+            tp_settings.append((gain, sell))
+        
+        current_price = get_eth_price()
+        if current_price is None:
+            st.error("Impossible de récupérer le prix de l'ETH.")
+        else:
+            tp_levels = calculate_take_profits(pru, tp_settings)
+            display_status(current_price, pru, tp_levels)
+    except Exception as e:
+        st.error(f"Erreur dans les entrées : {e}")
