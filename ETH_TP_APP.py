@@ -54,28 +54,26 @@ st.markdown("""
         font-size: 1.1rem;
     }
     .footer {
-        font-size: 0.75rem;
+        font-size: 0.8rem;
         color: #888;
         text-align: center;
-        margin-top: 20px;
-        opacity: 0.5;
+        margin-top: 30px;
         font-style: italic;
     }
     </style>
 """, unsafe_allow_html=True)
 
+# --- Affichage du titre (sans logo) ---
 st.markdown('<h1 class="title">ETH TP APP</h1>', unsafe_allow_html=True)
 
-# Cache le prix pendant 5 minutes pour éviter trop de requêtes
-@st.cache_data(ttl=300)
 def get_eth_price():
-    url_coingecko = "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd"
+    url_coincap = "https://api.coincap.io/v2/assets/ethereum"
     try:
-        response = requests.get(url_coingecko, timeout=5)
+        response = requests.get(url_coincap, timeout=5)
         response.raise_for_status()
         data = response.json()
-        price = data['ethereum']['usd']
-        return price
+        price = float(data['data']['priceUsd'])
+        return round(price, 2)
     except requests.RequestException as e:
         st.error(f"Erreur récupération prix ETH : {e}")
         return None
@@ -109,13 +107,14 @@ def display_status(current_price, pru, tp_levels):
             unsafe_allow_html=True
         )
 
-# --- Inputs dans une colonne pour avoir un look plus compact ---
+# --- Inputs dans une colonne pour un look compact ---
 col1, col2 = st.columns([1,3])
 with col1:
     pru = st.number_input("PRU ($) :", min_value=0.0, value=1500.0, step=1.0, format="%.2f")
 with col2:
     tp_input = st.text_input("TP (paliers) :", value="100:25,150:50,200:25")
 
+# Bouton stylé
 if st.button("Rafraîchir le prix d'ETH", key="refresh"):
     try:
         tp_settings = []
@@ -132,5 +131,5 @@ if st.button("Rafraîchir le prix d'ETH", key="refresh"):
     except Exception as e:
         st.error(f"Erreur dans les entrées : {e}")
 
-# Footer discret
-st.markdown('<p class="footer">© 1way</p>', unsafe_allow_html=True)
+# Footer discret avec ton nom
+st.markdown('<div class="footer">&copy; 1way</div>', unsafe_allow_html=True)
