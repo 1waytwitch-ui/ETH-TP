@@ -1,5 +1,8 @@
 import streamlit as st
 import requests
+import pandas as pd
+import altair as alt
+from datetime import datetime
 
 # --- Style CSS personnalisé ---
 st.markdown("""
@@ -56,13 +59,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- Affichage du titre avec logo ETH via st.image() ---
-col1, col2 = st.columns([1, 6])
-with col1:
-    st.image("https://cryptologos.cc/logos/ethereum-eth-logo.png?v=023", width=60, caption="ETH Logo")
-with col2:
-    st.markdown('<h1 class="title">ETH TP APP</h1>', unsafe_allow_html=True)
-
+st.markdown('<h1 class="title">ETH TP APP</h1>', unsafe_allow_html=True)
 
 def get_eth_price():
     url_coingecko = "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd"
@@ -70,10 +67,25 @@ def get_eth_price():
         response = requests.get(url_coingecko, timeout=5)
         response.raise_for_status()
         data = response.json()
-        price = data['ethereum']['usd']
-        return price
+        return data['ethereum']['usd']
     except requests.RequestException as e:
         st.error(f"Erreur récupération prix ETH : {e}")
+        return None
+
+def get_eth_24h_data():
+    url = "https://api.coingecko.com/api/v3/coins/ethereum/market_chart?vs_currency=usd&days=1&interval=hourly"
+    try:
+        response = requests.get(url, timeout=5)
+        response.raise_for_status()
+        data = response.json()
+        prices = data['prices']  # Liste de [timestamp, prix]
+        # Convertir en DataFrame pandas
+        df = pd.DataFrame(prices, columns=['timestamp', 'price'])
+        # Convertir timestamp ms en datetime
+        df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
+        return df
+    except requests.RequestException as e:
+        st.error(f"Erreur récupération graphique ETH : {e}")
         return None
 
 def calculate_take_profits(pru, tp_settings):
@@ -105,15 +117,27 @@ def display_status(current_price, pru, tp_levels):
             unsafe_allow_html=True
         )
 
-# --- Inputs dans une colonne pour avoir un look plus compact ---
+def display_eth_chart(df):
+    if df is not None and not df.empty:
+        chart = alt.Chart(df).mark_line(color="#8a2be2").encode(
+            x=alt.X('timestamp:T', axis=alt.Axis(title='Heure')),
+            y=alt.Y('price:Q', axis=alt.Axis(title='Prix USD')),
+            tooltip=[alt.Tooltip('timestamp:T', title='Heure'), alt.Tooltip('price:Q', title='Prix USD')]
+        ).properties(
+            width=700,
+            height=300,
+            title="Graphique ETH sur les dernières 24h"
+        )
+        st.altair_chart(chart, use_container_width=True)
+
+# Inputs
 col1, col2 = st.columns([1,3])
 with col1:
     pru = st.number_input("PRU ($) :", min_value=0.0, value=1500.0, step=1.0, format="%.2f")
 with col2:
     tp_input = st.text_input("TP (paliers) :", value="100:25,150:50,200:25")
 
-# Bouton stylé
-if st.button("Rafraîchir le prix d'ETH", key="refresh"):
+if st.button("Rafraîchir le prix d'ETH"):
     try:
         tp_settings = []
         for item in tp_input.split(','):
@@ -126,5 +150,10 @@ if st.button("Rafraîchir le prix d'ETH", key="refresh"):
         else:
             tp_levels = calculate_take_profits(pru, tp_settings)
             display_status(current_price, pru, tp_levels)
+
+            # Afficher graphique 24h ETH
+            df_24h = get_eth_24h_data()
+            display_eth_chart(df_24h)
+
     except Exception as e:
         st.error(f"Erreur dans les entrées : {e}")
