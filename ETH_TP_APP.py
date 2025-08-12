@@ -2,8 +2,18 @@ import streamlit as st
 import requests
 import time
 
-# --- Titre ---
-st.markdown("<h1 style='color:#4f46e5;'>ETH TP APP</h1>", unsafe_allow_html=True)
+st.markdown("""
+<h1 style="
+    background: -webkit-linear-gradient(45deg, #627EEA, #8a2be2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-size: 3rem;
+    font-weight: bold;
+    margin-bottom: 10px;
+">
+    🚀 ETH Take Profit Tracker
+</h1>
+""", unsafe_allow_html=True)
 
 # --- Message d'information pour l'utilisateur ---
 st.markdown("""
