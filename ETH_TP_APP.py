@@ -6,7 +6,7 @@ st.markdown("""
     <style>
     .main {
         background-color: #0e1117;
-        color: #eee;
+        color: white;
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
     .title {
@@ -25,6 +25,7 @@ st.markdown("""
         border-radius: 12px;
         padding: 15px;
         margin-bottom: 10px;
+        color: white !important;
     }
     .tp-level {
         color: #f0a500;
@@ -55,16 +56,13 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- Affichage du titre avec logo ETH ---
-st.markdown(
-    """
-    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 2rem;">
-        <img src="https://cryptologos.cc/logos/ethereum-eth-logo.png?v=023" alt="ETH Logo" width="60" height="60">
-        <h1 class="title">ETH TP APP</h1>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+# --- Affichage du titre avec logo ETH via st.image() ---
+col1, col2 = st.columns([1, 6])
+with col1:
+    st.image("https://cryptologos.cc/logos/ethereum-eth-logo.png?v=023", width=60, caption="ETH Logo")
+with col2:
+    st.markdown('<h1 class="title">ETH TP APP</h1>', unsafe_allow_html=True)
+
 
 def get_eth_price():
     url_coingecko = "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd"
