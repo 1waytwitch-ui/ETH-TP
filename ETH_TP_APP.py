@@ -5,26 +5,16 @@ st.title("ETH TP APP")
 
 def get_eth_price():
     url_coingecko = "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd"
-    url_coincap = "https://api.coincap.io/v2/assets/ethereum"
 
     try:
-        # Essai CoinGecko
         response = requests.get(url_coingecko, timeout=5)
         response.raise_for_status()
         data = response.json()
         price = data['ethereum']['usd']
         return price
-    except Exception:
-        try:
-            # Fallback CoinCap
-            response = requests.get(url_coincap, timeout=5)
-            response.raise_for_status()
-            data = response.json()
-            price = float(data['data']['priceUsd'])
-            return price
-        except Exception as e:
-            st.error(f"Erreur récupération prix ETH : {e}")
-            return None
+    except requests.RequestException as e:
+        st.error(f"Erreur récupération prix ETH : {e}")
+        return None
 
 def calculate_take_profits(pru, tp_settings):
     tp_levels = {}
