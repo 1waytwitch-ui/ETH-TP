@@ -152,3 +152,37 @@ if st.button("🔁 Rafraîchir le prix d'ETH"):
 
 # --- Signature discrète ---
 st.markdown("<div class='signature'>© 1way</div>", unsafe_allow_html=True)
+
+# --- Analyse rendement global du portefeuille ---
+st.markdown("---")
+st.markdown("## 📊 Suivi du rendement global du portefeuille")
+
+col1, col2 = st.columns(2)
+with col1:
+    invested_amount = st.number_input("💵 Montant investi total ($)", min_value=0.0, value=1500.0, step=10.0)
+with col2:
+    total_eth = st.number_input("🔢 Quantité totale d'ETH détenue", min_value=0.0, value=1.0, step=0.01, format="%.4f")
+
+if current_price and total_eth > 0:
+    current_value = current_price * total_eth
+    profit_loss = current_value - invested_amount
+    rendement_pct = (profit_loss / invested_amount) * 100 if invested_amount != 0 else 0
+
+    # Couleur selon gain ou perte
+    color = "#16a34a" if profit_loss >= 0 else "#dc2626"
+    emoji = "📈" if profit_loss >= 0 else "📉"
+
+    st.markdown(f"""
+        <div style="
+            border-left: 4px solid {color};
+            background-color: #f9f9f9;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 16px;
+            color: #111;">
+            {emoji} <strong>Valeur actuelle du portefeuille :</strong> ${current_value:.2f}<br>
+            💰 <strong>Montant investi :</strong> ${invested_amount:.2f}<br>
+            💹 <strong>Rendement :</strong> <span style='color:{color}; font-weight:bold;'>{rendement_pct:.2f}%</span><br>
+            💵 <strong>Gains/Pertes :</strong> <span style='color:{color}; font-weight:bold;'>${profit_loss:.2f}</span>
+        </div>
+    """, unsafe_allow_html=True)
