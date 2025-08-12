@@ -155,13 +155,13 @@ st.markdown("<div class='signature'>© 1way</div>", unsafe_allow_html=True)
 
 # --- Suivi manuel de la performance du portefeuille ---
 st.markdown("---")
-st.markdown("## 📊 Suivi manuel de la performance du portefeuille")
+st.markdown("## 📊 Suivi de la performance du portefeuille")
 
 col1, col2 = st.columns(2)
 with col1:
-    montant_investi = st.number_input("💵 Montant investi initial ($)", min_value=0.0, value=17000.0, step=100.0)
+    montant_investi = st.number_input("💵 Montant investi initial ($)", min_value=0.0, value=1000.0, step=100.0)
 with col2:
-    valeur_actuelle = st.number_input("📈 Valeur actuelle du portefeuille ($)", min_value=0.0, value=20000.0, step=100.0)
+    valeur_actuelle = st.number_input("📈 Valeur actuelle du portefeuille ($)", min_value=0.0, value=2000.0, step=100.0)
 
 # Calculs
 if montant_investi > 0:
