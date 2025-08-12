@@ -15,11 +15,6 @@ st.markdown("""
         font-size: 3rem;
         margin-bottom: 0;
     }
-    .subtitle {
-        color: #bbb;
-        margin-top: 0;
-        margin-bottom: 1rem;
-    }
     .tp-box {
         background: #1a1e24;
         border-radius: 12px;
@@ -33,11 +28,11 @@ st.markdown("""
         font-size: 1.1rem;
     }
     .status-reached {
-        color: #32cd32;  /* vert */
+        color: #32cd32;
         font-weight: bold;
     }
     .status-pending {
-        color: #ffa500;  /* orange */
+        color: #ffa500;
         font-weight: bold;
     }
     .price-current {
@@ -53,38 +48,37 @@ st.markdown("""
         font-weight: bold;
         font-size: 1.1rem;
     }
-    .footer {
+    footer {
         font-size: 0.8rem;
-        color: #888;
+        color: #555;
         text-align: center;
-        margin-top: 30px;
-        font-style: italic;
+        margin-top: 20px;
+        user-select: none;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# --- Affichage du titre (sans logo) ---
 st.markdown('<h1 class="title">ETH TP APP</h1>', unsafe_allow_html=True)
 
 def get_eth_price():
-    url_coincap = "https://api.coincap.io/v2/assets/ethereum"
+    url = "https://api.coincap.io/v2/assets/ethereum"
     try:
-        response = requests.get(url_coincap, timeout=5)
-        response.raise_for_status()
-        data = response.json()
+        r = requests.get(url, timeout=5)
+        r.raise_for_status()
+        data = r.json()
         price = float(data['data']['priceUsd'])
         return round(price, 2)
-    except requests.RequestException as e:
+    except Exception as e:
         st.error(f"Erreur récupération prix ETH : {e}")
         return None
 
 def calculate_take_profits(pru, tp_settings):
     tp_levels = {}
-    for i, (percent_gain, percent_sell) in enumerate(tp_settings, start=1):
-        level_price = pru * (1 + percent_gain / 100)
+    for i, (gain_pct, sell_pct) in enumerate(tp_settings, start=1):
+        level_price = pru * (1 + gain_pct / 100)
         tp_levels[f"TP{i}"] = {
-            "gain_pct": percent_gain,
-            "sell_pct": percent_sell,
+            "gain_pct": gain_pct,
+            "sell_pct": sell_pct,
             "price_level": round(level_price, 2)
         }
     return tp_levels
@@ -96,26 +90,18 @@ def display_status(current_price, pru, tp_levels):
     for tp_name, data in tp_levels.items():
         status = "✅ Atteint" if current_price >= data['price_level'] else "🔜 En attente"
         status_class = "status-reached" if current_price >= data['price_level'] else "status-pending"
-        
-        st.markdown(
-            f"""
+        st.markdown(f"""
             <div class="tp-box">
                 <span class="tp-level">{tp_name}</span>: +{data['gain_pct']}% → <strong>${data['price_level']}</strong> | Vendre {data['sell_pct']}%
                 <span class="{status_class}">{status}</span>
             </div>
-            """,
-            unsafe_allow_html=True
-        )
+        """, unsafe_allow_html=True)
 
-# --- Inputs dans une colonne pour un look compact ---
-col1, col2 = st.columns([1,3])
-with col1:
-    pru = st.number_input("PRU ($) :", min_value=0.0, value=1500.0, step=1.0, format="%.2f")
-with col2:
-    tp_input = st.text_input("TP (paliers) :", value="100:25,150:50,200:25")
+# Inputs
+pru = st.number_input("PRU ($) :", min_value=0.0, value=1500.0, step=1.0, format="%.2f")
+tp_input = st.text_input("TP (paliers) :", value="100:25,150:50,200:25")
 
-# Bouton stylé
-if st.button("Rafraîchir le prix d'ETH", key="refresh"):
+if st.button("Rafraîchir le prix d'ETH"):
     try:
         tp_settings = []
         for item in tp_input.split(','):
@@ -131,5 +117,4 @@ if st.button("Rafraîchir le prix d'ETH", key="refresh"):
     except Exception as e:
         st.error(f"Erreur dans les entrées : {e}")
 
-# Footer discret avec ton nom
-st.markdown('<div class="footer">&copy; 1way</div>', unsafe_allow_html=True)
+st.markdown('<footer>© 1way</footer>', unsafe_allow_html=True)
