@@ -1,106 +1,150 @@
 import streamlit as st
 import requests
-import time
+from datetime import datetime, timedelta
 
-# --- Cache manuel pour le prix ETH (15 min)
-cache = {
-    "price": None,
-    "timestamp": 0
-}
-
+# --- Mise en cache pendant 15 minutes pour limiter les appels à l'API ---
+@st.cache_data(ttl=900)
 def get_eth_price():
-    now = time.time()
-    if cache["price"] is not None and (now - cache["timestamp"] < 900):
-        return cache["price"]
+    url = "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd"
     try:
-        url = "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd"
         response = requests.get(url, timeout=5)
         response.raise_for_status()
-        data = response.json()
-        price = float(data['ethereum']['usd'])
-        cache["price"] = round(price, 2)
-        cache["timestamp"] = now
-        return cache["price"]
-    except requests.RequestException as e:
+        return response.json()['ethereum']['usd']
+    except Exception as e:
         st.error(f"Erreur récupération prix ETH : {e}")
         return None
 
-def calculate_tp_levels(pru, tp_settings):
-    tp_levels = {}
-    for i, (multiple, sell_pct) in enumerate(tp_settings, start=1):
-        level_price = pru * multiple
-        tp_levels[f"TP{i}"] = {
-            "multiple": multiple,
-            "sell_pct": sell_pct,
-            "price_level": round(level_price, 2)
+# --- Calcul des TP (Take Profit) ---
+def calculate_tp_levels(pru, multipliers, sell_percentages):
+    return [
+        {
+            "label": f"x{multiplier}",
+            "target_price": round(pru * multiplier, 2),
+            "sell_pct": sell_pct
         }
-    return tp_levels
+        for multiplier, sell_pct in zip(multipliers, sell_percentages)
+    ]
 
-def calculate_estimated_gains(bag, tp_levels, current_price):
-    total_sold = 0.0
-    total_value = 0.0
-    for data in tp_levels.values():
-        if current_price >= data["price_level"]:
-            qty_to_sell = (bag * data["sell_pct"]) / 100
-            total_sold += qty_to_sell
-            total_value += qty_to_sell * data["price_level"]
-    return round(total_value, 2), round(total_sold, 4)
+# --- Affichage des TP ---
+def display_tp_status(current_price, tp_levels, pru):
+    st.markdown(f"<p class='price-current'>💰 Prix actuel de l'ETH : <strong>${current_price}</strong></p>", unsafe_allow_html=True)
+    st.markdown(f"<p>🎯 PRU : <strong>${pru}</strong></p>", unsafe_allow_html=True)
+    gains_total = 0
+    total_eth_sold = 0
+    for tp in tp_levels:
+        status = "✅ Atteint" if current_price >= tp["target_price"] else "🔜 En attente"
+        status_class = "status-reached" if current_price >= tp["target_price"] else "status-pending"
 
-# --- INTERFACE ---
-st.markdown("<h1 style='color:#8a2be2;'>ETH TP APP</h1>", unsafe_allow_html=True)
+        if current_price >= tp["target_price"]:
+            # Simuler un portefeuille de 1 ETH pour calcul des gains
+            eth_sold = tp["sell_pct"] / 100
+            gain = tp["target_price"] * eth_sold
+            gains_total += gain
+            total_eth_sold += eth_sold
 
-# --- Inputs utilisateur
-col1, col2, col3 = st.columns(3)
+        st.markdown(
+            f"""
+            <div class="tp-box">
+                <span class="tp-level">{tp["label"]}</span> → <strong>${tp["target_price"]}</strong> | Vendre {tp["sell_pct"]}% 
+                <span class="{status_class}">{status}</span>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    # --- Affichage des gains ---
+    if gains_total > 0:
+        st.markdown(
+            f"""
+            <div class="gains-box">
+                💵 <span class="gains-title">Gains estimés réalisés :</span>
+                <span class="gains-amount">${gains_total:,.1f}</span> pour 
+                <span class="gains-eth">{total_eth_sold:.2f} ETH</span> vendus.
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+# --- Style CSS ---
+st.markdown("""
+    <style>
+    .main {
+        background-color: #0e1117;
+        color: white;
+    }
+    .title {
+        font-weight: bold;
+        color: #8a2be2;
+        font-size: 3rem;
+    }
+    .tp-box {
+        background: #1a1e24;
+        border-radius: 10px;
+        padding: 12px;
+        margin-bottom: 10px;
+    }
+    .tp-level {
+        color: #f0a500;
+        font-weight: bold;
+    }
+    .status-reached {
+        color: #32cd32;
+        font-weight: bold;
+        margin-left: 10px;
+    }
+    .status-pending {
+        color: #ffa500;
+        font-weight: bold;
+        margin-left: 10px;
+    }
+    .price-current {
+        font-size: 1.4rem;
+        color: #4dd0e1;
+    }
+    .gains-box {
+        font-size: 1.3rem;
+        background-color: #1e1e1e;
+        border-radius: 10px;
+        padding: 12px;
+        margin-top: 25px;
+    }
+    .gains-title {
+        font-weight: bold;
+    }
+    .gains-amount {
+        color: #90ee90;
+        font-weight: bold;
+        padding: 0 5px;
+    }
+    .gains-eth {
+        color: #00bcd4;
+        font-weight: bold;
+        padding-left: 5px;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# --- Titre ---
+st.markdown('<h1 class="title">ETH TP APP</h1>', unsafe_allow_html=True)
+
+# --- Inputs ---
+col1, col2 = st.columns(2)
 with col1:
-    pru = st.number_input("🎯 PRU ($)", min_value=0.0, value=1500.0, step=1.0, format="%.2f")
+    pru = st.number_input("PRU ($)", value=1500.0, step=10.0, min_value=0.0)
 with col2:
-    tp_input = st.text_input("📈 TP (x:sell%)", value="2:25,2.5:50,3:25")
-with col3:
-    bag = st.number_input("👛 Quantité ETH détenue", min_value=0.0, value=1.0, step=0.1, format="%.4f")
+    st.markdown("Multiplicateurs : x2, x2.5, x3 — Ventes : 25%, 50%, 25%")
 
-# --- Action bouton
-if st.button("🔁 Rafraîchir le prix d'ETH"):
-    try:
-        # Traitement des TP
-        tp_settings = []
-        for item in tp_input.split(','):
-            multiple, sell = map(float, item.strip().split(':'))
-            tp_settings.append((multiple, sell))
-
-        current_price = get_eth_price()
-        if current_price is None:
-            st.error("Prix ETH indisponible.")
-        else:
-            st.success(f"💰 Prix actuel de l'ETH : **${current_price}**")
-            st.markdown(f"🧮 PRU : **${pru}**")
-
-            tp_levels = calculate_tp_levels(pru, tp_settings)
-
-            # Affichage des TP
-            for tp_name, data in tp_levels.items():
-                status = "✅ Atteint" if current_price >= data['price_level'] else "⏳ En attente"
-                color = "green" if status == "✅ Atteint" else "orange"
-                st.markdown(f"""
-                    <div style='
-                        background-color:#1a1e24;
-                        border-radius:10px;
-                        padding:10px;
-                        margin-bottom:10px;
-                        color:white;
-                        font-size:16px;
-                    '>
-                        <strong style='color:#f0a500;'>{tp_name}</strong> : x{data['multiple']} → 
-                        <strong>${data['price_level']}</strong> | Vendre {data['sell_pct']}%
-                        <span style='color:{color}; font-weight:bold;'> ({status})</span>
-                    </div>
-                """, unsafe_allow_html=True)
-
-            # Estimation des gains
-            total_value, total_sold = calculate_estimated_gains(bag, tp_levels, current_price)
-            st.markdown("---")
-            st.markdown(f"💵 **Gains estimés réalisés :** `${total_value}` pour `{total_sold} ETH` vendus.")
-    except Exception as e:
-        st.error(f"Erreur dans les entrées : {e}")
+if st.button("Rafraîchir le prix d'ETH"):
+    current_price = get_eth_price()
+    if current_price:
+        tp_levels = calculate_tp_levels(
+            pru,
+            multipliers=[2, 2.5, 3],
+            sell_percentages=[25, 50, 25]
+        )
+        display_tp_status(current_price, tp_levels, pru)
+    else:
+        st.error("Impossible de récupérer le prix actuel de l'ETH.")
 
 # --- Signature discrète ---
-st.markdown("<div style='text-align:right; font-size:10px; color:#555;'>© 1way</div>", unsafe_allow_html=True)
+st.markdown("<br><p style='text-align: center; color: grey; font-size: 0.8rem;'>© 1way</p>", unsafe_allow_html=True)
