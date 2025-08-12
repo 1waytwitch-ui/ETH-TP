@@ -1,11 +1,73 @@
 import streamlit as st
 import requests
 
-st.title("ETH TP APP")
+# --- Style CSS personnalisé ---
+st.markdown("""
+    <style>
+    .main {
+        background-color: #0e1117;
+        color: #eee;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    .title {
+        font-weight: bold;
+        color: #8a2be2;
+        font-size: 3rem;
+        margin-bottom: 0;
+    }
+    .subtitle {
+        color: #bbb;
+        margin-top: 0;
+        margin-bottom: 1rem;
+    }
+    .tp-box {
+        background: #1a1e24;
+        border-radius: 12px;
+        padding: 15px;
+        margin-bottom: 10px;
+    }
+    .tp-level {
+        color: #f0a500;
+        font-weight: 600;
+        font-size: 1.1rem;
+    }
+    .status-reached {
+        color: #32cd32;  /* vert */
+        font-weight: bold;
+    }
+    .status-pending {
+        color: #ffa500;  /* orange */
+        font-weight: bold;
+    }
+    .price-current {
+        color: #4dd0e1;
+        font-weight: bold;
+        font-size: 1.3rem;
+    }
+    .button-primary {
+        background-color: #8a2be2;
+        color: white;
+        border-radius: 8px;
+        padding: 0.5rem 1.2rem;
+        font-weight: bold;
+        font-size: 1.1rem;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# --- Affichage du titre avec logo ETH ---
+st.markdown(
+    """
+    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 2rem;">
+        <img src="https://cryptologos.cc/logos/ethereum-eth-logo.png?v=023" alt="ETH Logo" width="60" height="60">
+        <h1 class="title">ETH TP APP</h1>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 def get_eth_price():
     url_coingecko = "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd"
-
     try:
         response = requests.get(url_coingecko, timeout=5)
         response.raise_for_status()
@@ -28,20 +90,32 @@ def calculate_take_profits(pru, tp_settings):
     return tp_levels
 
 def display_status(current_price, pru, tp_levels):
-    st.write("="*40)
-    st.write("📊 Paliers de Take Profit :")
+    st.markdown(f"<p class='price-current'>💰 Prix actuel de l'ETH : ${current_price}</p>", unsafe_allow_html=True)
+    st.markdown(f"<p>🎯 PRU : ${pru}</p>", unsafe_allow_html=True)
+
     for tp_name, data in tp_levels.items():
         status = "✅ Atteint" if current_price >= data['price_level'] else "🔜 En attente"
-        st.write(f" - {tp_name}: +{data['gain_pct']}% → {data['price_level']} USD | Vendre {data['sell_pct']}% ({status})")
-    st.write(f"\n💰 Prix actuel de l'ETH : {current_price} USD")
-    st.write(f"🎯 PRU : {pru} USD")
-    st.write("="*40)
+        status_class = "status-reached" if current_price >= data['price_level'] else "status-pending"
+        
+        st.markdown(
+            f"""
+            <div class="tp-box">
+                <span class="tp-level">{tp_name}</span>: +{data['gain_pct']}% → <strong>${data['price_level']}</strong> | Vendre {data['sell_pct']}%
+                <span class="{status_class}">{status}</span>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
-# Inputs
-pru = st.number_input("PRU ($) :", min_value=0.0, value=1500.0, step=1.0, format="%.2f")
-tp_input = st.text_input("TP (paliers) :", value="100:25,150:50,200:25")
+# --- Inputs dans une colonne pour avoir un look plus compact ---
+col1, col2 = st.columns([1,3])
+with col1:
+    pru = st.number_input("PRU ($) :", min_value=0.0, value=1500.0, step=1.0, format="%.2f")
+with col2:
+    tp_input = st.text_input("TP (paliers) :", value="100:25,150:50,200:25")
 
-if st.button("Rafraîchir le prix d'ETH"):
+# Bouton stylé
+if st.button("Rafraîchir le prix d'ETH", key="refresh"):
     try:
         tp_settings = []
         for item in tp_input.split(','):
