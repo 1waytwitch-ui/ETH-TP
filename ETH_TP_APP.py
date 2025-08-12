@@ -2,6 +2,28 @@ import streamlit as st
 import requests
 import time
 
+# --- Message d'information pour l'utilisateur ---
+st.markdown("""
+<div style="
+    background-color: #262730;
+    border-left: 5px solid #8a2be2;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    color: white;
+    font-size: 15px;
+">
+    ⚠️ <strong>Important :</strong> Ne pas actualiser la page manuellement. Utilisez uniquement le bouton <span style="color:#f0a500;">🔁 Rafraîchir le prix d'ETH</span> pour mettre à jour les données.<br><br>
+    ✏️ Vous pouvez modifier :
+    <ul style="margin-top: 5px;">
+        <li>Votre <strong>PRU</strong> (Prix de Revient Unitaire)</li>
+        <li>Les <strong>paliers de Take Profit</strong> au format <code>x:pourcentage</code> (ex. <code>2:25,2.5:50,3:25</code>)</li>
+        <li>La <strong>quantité d’ETH détenue</strong> (votre bag)</li>
+    </ul>
+</div>
+""", unsafe_allow_html=True)
+
+
 # --- Cache manuel pour le prix ETH (15 min)
 cache = {
     "price": None,
