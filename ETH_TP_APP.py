@@ -2,6 +2,9 @@ import streamlit as st
 import requests
 import time
 
+# --- Titre ---
+st.markdown("<h1 style='color:#4f46e5;'>ETH TP APP</h1>", unsafe_allow_html=True)
+
 # --- Message d'information pour l'utilisateur ---
 st.markdown("""
 <div style="
@@ -113,8 +116,6 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- Titre ---
-st.markdown("<h1 style='color:#4f46e5;'>ETH TP APP</h1>", unsafe_allow_html=True)
 
 # --- Inputs utilisateur
 col1, col2, col3 = st.columns(3)
