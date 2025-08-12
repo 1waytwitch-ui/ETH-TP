@@ -62,27 +62,3 @@ if eth_price is not None:
         """, unsafe_allow_html=True)
 else:
     st.warning("Cliquez sur 'Rafraîchir le prix d'ETH' pour récupérer le prix actuel.")
-
-# Footer avec ton nom (centré, petit, gris clair)
-st.markdown(
-    """
-    <style>
-    .footer {
-        position: fixed;
-        left: 0;
-        bottom: 0;
-        width: 100%;
-        text-align: center;
-        color: #999999;
-        font-size: 12px;
-        padding: 10px 0;
-        background-color: #f9f9f9;
-        border-top: 1px solid #eaeaea;
-    }
-    </style>
-    <div class="footer">
-        2025 1way
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
