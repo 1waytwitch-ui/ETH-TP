@@ -183,8 +183,6 @@ if st.button("🔁 Rafraîchir le prix d'ETH"):
     except Exception as e:
         st.error(f"Erreur dans les entrées : {e}")
 
-# --- Signature discrète ---
-st.markdown("<div class='signature'>© 1way</div>", unsafe_allow_html=True)
 
 # --- Suivi manuel de la performance du portefeuille ---
 st.markdown("---")
@@ -219,4 +217,6 @@ if montant_investi > 0:
         </div>
     """, unsafe_allow_html=True)
 
+# --- Signature discrète ---
+st.markdown("<div class='signature'>© 1way</div>", unsafe_allow_html=True)
 
