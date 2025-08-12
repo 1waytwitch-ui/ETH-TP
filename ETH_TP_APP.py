@@ -45,7 +45,7 @@ st.markdown("<h1 style='color:#8a2be2;'>ETH TP APP</h1>", unsafe_allow_html=True
 
 # Entrées utilisateur
 pru = st.number_input("💼 PRU (Prix d'achat unitaire en $) :", min_value=0.0, value=1500.0, step=1.0, format="%.2f")
-tp_input = st.text_input("🎯 TP (paliers au format gain:sell%) :", value="20:25,40:50,60:25")
+tp_input = st.text_input("🎯 TP (paliers au format gain:sell%) :", value="100:25,150:50,200:25")
 
 if st.button("🔁 Rafraîchir le prix d'ETH"):
     try:
