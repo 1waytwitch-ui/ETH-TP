@@ -53,13 +53,21 @@ st.markdown("""
         font-weight: bold;
         font-size: 1.1rem;
     }
+    .footer {
+        font-size: 0.75rem;
+        color: #888;
+        text-align: center;
+        margin-top: 20px;
+        opacity: 0.5;
+        font-style: italic;
+    }
     </style>
 """, unsafe_allow_html=True)
 
-# Titre simple sans logo
 st.markdown('<h1 class="title">ETH TP APP</h1>', unsafe_allow_html=True)
 
-
+# Cache le prix pendant 5 minutes pour éviter trop de requêtes
+@st.cache_data(ttl=300)
 def get_eth_price():
     url_coingecko = "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd"
     try:
@@ -108,7 +116,6 @@ with col1:
 with col2:
     tp_input = st.text_input("TP (paliers) :", value="100:25,150:50,200:25")
 
-# Bouton stylé
 if st.button("Rafraîchir le prix d'ETH", key="refresh"):
     try:
         tp_settings = []
@@ -124,3 +131,6 @@ if st.button("Rafraîchir le prix d'ETH", key="refresh"):
             display_status(current_price, pru, tp_levels)
     except Exception as e:
         st.error(f"Erreur dans les entrées : {e}")
+
+# Footer discret
+st.markdown('<p class="footer">© 1way</p>', unsafe_allow_html=True)
