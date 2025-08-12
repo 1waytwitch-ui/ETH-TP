@@ -56,12 +56,8 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- Affichage du titre avec logo ETH via st.image() ---
-col1, col2 = st.columns([1, 6])
-with col1:
-    st.image("https://cryptologos.cc/logos/ethereum-eth-logo.png?v=023", width=60, caption="ETH Logo")
-with col2:
-    st.markdown('<h1 class="title">ETH TP APP</h1>', unsafe_allow_html=True)
+# Titre simple sans logo
+st.markdown('<h1 class="title">ETH TP APP</h1>', unsafe_allow_html=True)
 
 
 def get_eth_price():
