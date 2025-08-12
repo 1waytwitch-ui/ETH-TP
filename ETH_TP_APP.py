@@ -159,32 +159,31 @@ st.markdown("## 📊 Suivi de la performance du portefeuille")
 
 col1, col2 = st.columns(2)
 with col1:
-    montant_investi = st.number_input("💵 Montant investi initial ($)", min_value=0.0, value=1000.0, step=100.0)
+    montant_investi = st.number_input("💵 Montant investi initial ($)", min_value=0.0, value=1000.0, step=100.0, format="%.2f")
 with col2:
-    valeur_actuelle = st.number_input("📈 Valeur actuelle du portefeuille ($)", min_value=0.0, value=2000.0, step=100.0)
+    valeur_actuelle = st.number_input("📈 Valeur actuelle du portefeuille ($)", min_value=0.0, value=1500.0, step=100.0, format="%.2f")
 
-# Calculs
 if montant_investi > 0:
     profit_loss = valeur_actuelle - montant_investi
     rendement_pct = (profit_loss / montant_investi) * 100
 
-    color = "#22c55e" if profit_loss >= 0 else "#ef4444"
+    color = "#32cd32" if profit_loss >= 0 else "#ffa500"  # vert ou orange
     emoji = "📈" if profit_loss >= 0 else "📉"
 
     st.markdown(f"""
         <div style="
-            border-left: 4px solid {color};
-            background-color: #f9f9f9;
+            background-color: #1a1e24;
+            border-radius: 12px;
             padding: 15px;
             margin-top: 10px;
+            color: white;
             font-size: 16px;
-            color: #111;
-            border-radius: 8px;
         ">
-            {emoji} <strong>Valeur actuelle :</strong> ${valeur_actuelle:,.2f}<br>
-            💵 <strong>Investi initialement :</strong> ${montant_investi:,.2f}<br>
-            📊 <strong>Rendement :</strong> <span style='color:{color}; font-weight:bold;'>{rendement_pct:.2f}%</span><br>
-            💰 <strong>Gains/Pertes :</strong> <span style='color:{color}; font-weight:bold;'>${profit_loss:,.2f}</span>
+            <p>{emoji} <strong>Valeur actuelle :</strong> <span style="color:#4dd0e1;">${valeur_actuelle:,.2f}</span></p>
+            <p>💵 <strong>Investi initialement :</strong> ${montant_investi:,.2f}</p>
+            <p>📊 <strong>Rendement :</strong> <span style="color:{color}; font-weight:bold;">{rendement_pct:.2f}%</span></p>
+            <p>💰 <strong>Gains/Pertes :</strong> <span style="color:{color}; font-weight:bold;">${profit_loss:,.2f}</span></p>
         </div>
     """, unsafe_allow_html=True)
+
 
